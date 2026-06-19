@@ -1,23 +1,55 @@
-# ledepot
+# Lead generation workflow
 
-Lead sourcing, qualification, and outreach assets for a done-for-you tech-services business
-(websites, workflow automation, database management) targeting non-technical local business
-owners in the NYC tri-state area (NY / NJ / CT).
+A profile-driven funnel for a done-for-you tech-services business (websites,
+automation, database work) targeting non-technical local business owners in the
+NYC tri-state area (NY / NJ / CT).
 
-## Contents
+```
+campaign-researcher → profile → lead-scraper → lead-qualifier → scored.csv → outreach → outcomes
+        ▲                                                                                    │
+        └──────────────────────  campaign-evaluator grades & feeds back  ◀──────────────────┘
+```
 
-- **`lead-sourcing-and-qualification-strategy.md`** — where leads come from and how they're qualified.
-- **`lead-qualifier/`** — a reusable skill that operationalizes the strategy:
-  - `SKILL.md` — the workflow (source → enrich → score → tier → hand off to outreach).
-  - `references/qualification-rubric.md` — exact Need × Ability-to-pay × Reachability scoring.
-  - `references/target-niches-tristate.md` — ranked tri-state niches with example search queries.
-  - `references/sourcing-tools.md` — current tools, pricing, and cold-email deliverability setup.
-  - `scripts/score_leads.py` — scores a scraped CSV and outputs a ranked, tiered prospect list.
+**Core idea:** *what* you target lives in a campaign **profile** (config); *how*
+you scrape and score lives in the **skills** (machinery). Pivoting to a new niche,
+geography, or offer is a new profile — not a code change.
+
+## Structure
+
+- **`campaign-researcher/`** — researches a market and writes an evidence-backed profile + a reusable research playbook (the front of the funnel; start here for a new campaign).
+  - `scripts/validate_profile.py`, `references/profile-research-map.md`, `references/research-playbook-template.md`.
+- **`lead-pipeline/`** — orchestrator skill + the campaign profiles.
+  - `SKILL.md` — runs the end-to-end flow.
+  - `profiles/` — one file per campaign (`salons-tristate-website.yaml`, `_template.yaml`) + schema `README.md`.
+- **`lead-scraper/`** — sources businesses from Google Maps (Outscraper/Apify) into a normalized CSV.
+  - `scripts/scrape.py` (supports `--dry-run`), `references/sourcing-tools.md`.
+- **`lead-qualifier/`** — scores the CSV into ranked A/B/C tiers, driven by the profile.
+  - `scripts/score_leads.py`, `references/qualification-rubric.md`, `references/target-niches-tristate.md`.
+- **`campaign-evaluator/`** — grades whether the tiers actually converted (calibration), scores the profiler 0–100, tracks the trend, and feeds fixes back into the researcher's playbooks (closes the loop).
+  - `scripts/score_campaign.py`, `scripts/outcomes_template.csv`, `references/metrics.md`.
+- **`lead-sourcing-and-qualification-strategy.md`** — the written strategy behind it all.
 
 ## Quick start
 
 ```bash
-python3 lead-qualifier/scripts/score_leads.py your_scraped_leads.csv -o scored.csv
+pip install pyyaml outscraper --break-system-packages
+export OUTSCRAPER_API_KEY=...
+
+# 1. preview scope/cost (no spend)
+python3 lead-scraper/scripts/scrape.py --profile lead-pipeline/profiles/salons-tristate-website.yaml --dry-run
+
+# 2. source
+python3 lead-scraper/scripts/scrape.py --profile lead-pipeline/profiles/salons-tristate-website.yaml -o raw_leads.csv
+
+# 3. qualify
+python3 lead-qualifier/scripts/score_leads.py raw_leads.csv \
+    --profile lead-pipeline/profiles/salons-tristate-website.yaml -o scored.csv
 ```
 
-The script auto-detects common column names from Outscraper / Apify / Apollo exports.
+Then work the tiers: **A** → build a demo + email first; **B** → phone-first; **C** → nurture.
+
+## Pivoting
+
+- New niche/area → edit `niches`/`locations` in the profile.
+- New offer (e.g. automation) → set `offer:` + adjust `need_points`/`pitch`; wire a new detector in `score_leads.py` only if the offer type is brand new.
+- Tougher/looser bar → edit `tiers`/`weights` in the profile.

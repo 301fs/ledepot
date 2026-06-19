@@ -1,5 +1,11 @@
 # Qualification Rubric
 
+> These are the **default** values and the reasoning behind them. At runtime they
+> are overridden by the campaign profile (`../../lead-pipeline/profiles/*.yaml`):
+> `need_points`, `ability`, `reach`, `tiers`, and `weights` all come from there.
+> Read this file to understand *why* the numbers are shaped the way they are and
+> how to retune them sensibly for a new offer or niche.
+
 The composite score is **Need × Ability-to-pay × Reachability**. Each dimension is scored 0–10. Multiplying enforces the rule that a lead must clear all three: a zero on any dimension zeroes the lead. Max composite is 1000; the script normalizes the display to 0–100.
 
 Treat these numbers as a tuned starting point, not physics. They're calibrated for low-tech tri-state local businesses where the first offer is a website. If you shift niche or offer, retune (e.g. for an automation-first offer, "manual operations" should weigh heavier than "no website").

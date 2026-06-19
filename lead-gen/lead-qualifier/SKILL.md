@@ -1,83 +1,70 @@
 ---
 name: lead-qualifier
-description: Source and qualify local-business leads for a done-for-you tech-services business (websites, automation, database work) targeting non-technical owners in the NYC tri-state area. Use this skill whenever the user wants to find leads, build a prospect list, scrape local businesses (e.g. from Google Maps), score or rank prospects, decide who to reach out to, or set up the top of their sales funnel — even if they don't say the word "lead." Trigger on phrasings like "find me businesses that need a website," "who should I cold email," "build a prospect list for plumbers in NJ," "qualify these leads," or "score this scraped CSV."
+description: Score and qualify a list of local businesses into ranked, tiered prospects for a done-for-you tech-services business (websites, automation, database work) targeting non-technical owners in the NYC tri-state area. Use this skill whenever the user has a list/CSV of businesses (e.g. scraped from Google Maps by lead-scraper) and wants to rank them, decide who to approach, filter to the good ones, or "qualify these leads." Driven by a campaign profile so the niche, offer, and scoring can change without code edits. Trigger on phrasings like "qualify these leads," "score this scraped CSV," "who's worth reaching out to," or "rank these salons." For the full source→qualify→outreach flow, see the lead-pipeline skill; for getting the raw list, see lead-scraper.
 ---
 
 # Lead Qualifier
 
-This skill turns a raw list of local businesses into a **ranked, tiered list of qualified prospects** ready for demo-and-outreach. It is built for one specific business model, and every decision in it serves that model — understand the model first and the rules will make sense.
+This skill turns a raw list of local businesses into a **ranked, tiered list of qualified prospects**. It is the middle stage of the funnel: `lead-scraper` produces the raw CSV, this skill scores it, and outreach acts on the tiers. It reads the **same campaign profile** the scraper used, so qualification always matches what was targeted.
 
 ## The business model this serves
 
-The user sells **done-for-you tech work** (websites first, then workflow automation, database management, etc.) to **non-technical local business owners** in the **NYC tri-state area (NY, NJ, CT)**. The outreach motion is: build a **demo website** for a prospect, **cold-email the demo**, and **call after 2 days** if they don't reply.
+The user sells **done-for-you tech work** (websites first, then workflow automation, database management, etc.) to **non-technical local business owners** in the **NYC tri-state area (NY, NJ, CT)**. The outreach motion is: build a **demo** for a prospect, **cold-email it**, and **call after 2 days** if they don't reply.
 
-That model dictates what a "good lead" is. A good lead is a business where **all three** of these are true at once:
+That model dictates what a "good lead" is. A good lead is a business where **all three** are true at once:
 
-1. **Need** — there's a visible tech gap (no website, a bad website, or manual operations) so a demo will land hard.
-2. **Ability to pay** — proof of steady customers and cash flow (reviews, longevity, price level), so they can actually buy.
-3. **Reachability** — at least one working channel (email and/or phone), so the demo-email-then-call play can run.
+1. **Need** — there's a visible gap that *this campaign's offer* fixes (for a website offer: no/bad website; for an automation offer: manual operations). The profile's `offer` decides what "need" means.
+2. **Ability to pay** — proof of steady customers and cash flow (reviews, rating, price level).
+3. **Reachability** — at least one working channel (email and/or phone) so the demo-email-then-call play can run.
 
-Miss any one and it's not a lead. That's why scoring **multiplies** the three dimensions rather than adding them — a zero anywhere zeroes the whole prospect.
+Miss any one and it's not a lead. Scoring **multiplies** the three dimensions rather than adding them, so a zero anywhere zeroes the prospect — that's deliberate (see the rubric for why).
+
+## Profile-driven by design
+
+Everything tunable lives in a **campaign profile** (`../lead-pipeline/profiles/*.yaml`), not in this skill's code:
+
+- `offer` selects which **need detectors** run (the detection logic per offer is in `scripts/score_leads.py`; the points are in the profile).
+- `need_points`, `ability`, `reach`, `tiers`, and `weights` tune the scoring.
+
+This is what lets the user pivot — new niche, new geography, or new offer — by editing one file. **Adding a brand-new *type* of need signal** (e.g. a `database` offer) means adding one detector function in `scripts/score_leads.py` and listing its signal ids in the profile; everything else is config. See `../lead-pipeline/profiles/README.md` for the schema.
 
 ## Workflow
 
-Follow these steps in order. Steps 1–2 produce raw data; step 3 is the core qualification; step 4 hands off to outreach.
+1. **Get the profile and the raw CSV.** The profile is the campaign file; the CSV is `lead-scraper`'s output (or any export — the scorer sniffs common Outscraper/Apify/Apollo column names).
+2. **Run the scorer:**
+   ```bash
+   python3 scripts/score_leads.py raw_leads.csv --profile ../lead-pipeline/profiles/<campaign>.yaml -o scored.csv
+   ```
+   (Profiles are YAML — needs PyYAML: `pip install pyyaml --break-system-packages`. JSON profiles work with no dependency.)
+3. **Read the printed summary** — it reports the profile/offer, the A/B/C/disqualified counts, and the top prospects. If the scorer warns it couldn't map a column or scored something conservatively, note it.
+4. **Spot-check the top 5 and bottom 5 by hand** before trusting the ranking on an unfamiliar export. Automated signals are directional. In particular, when a need signal is "site exists — load it to confirm," actually open the site rather than assuming from the URL.
+5. **Hand off** the scored CSV: Tier A → demo + email track; Tier B → phone-first track.
 
-### Step 1 — Define the batch (niche × geography)
+## Tiers the scorer assigns
 
-Pick one niche and a set of tri-state towns/ZIPs to target. Don't boil the ocean — one niche at a time keeps the demo and the pitch sharp. If the user hasn't named a niche, recommend from `references/target-niches-tristate.md` (ranked by how low-tech-yet-moneyed each category tends to be). Build search queries in the pattern `<niche> in <town/state>`, e.g. "plumber in Hoboken NJ", "dentist in White Plains NY", "auto repair in Stamford CT".
-
-### Step 2 — Source the raw list
-
-Pull businesses from **Google Maps**, the richest public source for local businesses — it exposes exactly the fields we score on (website-or-not, URL, category, review count, rating, phone, price level, address).
-
-- Preferred at this budget: a **pay-per-use Maps scraper** (Outscraper or an Apify Google Maps scraper) with the **email/social extraction add-on**. Avoid the official Google Places API — it's far pricier per record, caps results, and returns no email.
-- If the user already has a scraped CSV/export, skip straight to step 3.
-- For enrichment (emails, owner names) when the scraper misses them, use Hunter.io (free tier) or Apollo. See `references/sourcing-tools.md` for current tools, pricing, and the cold-email deliverability setup.
-
-The export should be a CSV. Normalize columns to whatever the scraper gives; the scoring script auto-detects common column names (name, site/website, phone, reviews, rating, category, etc.).
-
-### Step 3 — Score and tier (the core of the skill)
-
-Run the scoring script on the CSV. It computes a composite score from Need × Ability-to-pay × Reachability and outputs a ranked, tiered CSV plus a short summary.
-
-```bash
-python3 scripts/score_leads.py <input.csv> -o <scored_output.csv>
-```
-
-The script is column-tolerant (it sniffs for common header names from Outscraper/Apify/Apollo exports). If a column it wants is missing, it scores conservatively and notes the assumption — read its printed summary. Before trusting the ranking on an unfamiliar export, **open the output and spot-check the top 5 and bottom 5 by hand** — automated signals are directional, not gospel, and a quick human glance catches mislabeled categories or dead businesses.
-
-The full point values and the logic behind each are in `references/qualification-rubric.md`. Read that file when you need to explain a score, tune the weights for a different niche, or add a new signal. Do **not** restate the rubric from memory — read it, because the numbers are tuned and change over time.
-
-Tiers the script assigns:
-
-- **Tier A (hot)** — high need + can pay + **email found** → build a demo website and email it first.
+- **Tier A (hot)** — high need + can pay + **email found** → build a demo and email first.
 - **Tier B (warm)** — high need + can pay but **no email** → phone-first track using the Google number.
-- **Tier C (nurture)** — fits but weak on one dimension → revisit in a later batch.
-- **Disqualified** — already has a modern site, no reachable contact, or looks defunct/too small.
+- **Tier C (nurture)** — fits but weak on one dimension → revisit later.
+- **Disqualified** — low need (already served), no reachable contact, or no proven customers.
 
-### Step 4 — Hand off to outreach
-
-Output a clean CSV the user can work from, with the tier, the composite score, the specific need signal that triggered (e.g. "no website", "not mobile-friendly", "© 2016 footer"), and the best contact channel. Tier A rows go to the website-demo + cold-email track; Tier B rows go to the call-first track. Suggest tracking each lead's status (sourced → qualified → demo built → emailed → called → replied → booked) so nothing slips; if the user has Notion or a sheet connected, offer to set that tracker up.
+The A/B split is deliberately about **email**, because the primary play (demo email) needs it. Don't promote a no-email lead into A on raw score alone — route it to the phone track.
 
 ## Output format
 
 Always deliver:
 
-1. **A scored CSV** (one row per business) sorted by composite score descending, with columns: `business_name, category, tier, composite_score, need_signal, ability_signal, contact_channel, email, phone, website, address`.
-2. **A short written summary** stating how many businesses were scored, the Tier A/B/C/disqualified counts, and the top few names with a one-line reason each. Keep it tight — the user wants the list, not an essay.
+1. **A scored CSV** sorted by tier then composite score, columns: `business_name, category, tier, composite_score, need_signal, ability_signal, contact_channel, email, phone, website, address` (plus the per-dimension scores).
+2. **A short written summary**: how many scored, the tier counts, and the top few names with a one-line reason each. Keep it tight — the user wants the list, not an essay.
 
 ## Guardrails
 
-- **Respect the all-three rule.** Resist the temptation to surface a flashy "terrible website" lead that has no reviews and no contact — it wastes the user's outreach time. The multiply-not-add scoring exists to enforce this; don't override it without saying why.
-- **Don't fabricate contact data.** If no email was found, mark it missing and route to the phone track. Never guess an email address that wasn't actually discovered.
-- **Verify before asserting a site is "bad."** When the website-quality signal matters for tiering, actually load the site (fetch it / open it in the browser) rather than assuming from the URL — a site can look outdated in a directory but be fine, or vice versa.
-- **Stay within the budget.** Prefer pay-per-use scraping and free enrichment tiers; flag before recommending anything that pushes past ~$100/mo.
-- **Scraping etiquette.** Only collect public business-listing data, at reasonable volume. This is standard B2B prospecting; keep it that way.
+- **Respect the all-three rule.** Don't surface a flashy "terrible website" lead that has no reviews and no contact — the multiply-not-add scoring exists to prevent exactly that; don't override it without saying why.
+- **Don't fabricate contact data.** If no email was found, mark it missing and route to the phone track. Never invent an email.
+- **Verify "bad site" claims** by loading the site when that signal drives tiering.
+- **Keep parameters in the profile.** If you find yourself wanting to change a threshold or a niche, edit the profile, not the code. Only touch the code to add a new *kind* of detector.
 
 ## Reference files
 
-- `references/target-niches-tristate.md` — ranked tri-state niches with why each is a good fit and example search queries.
-- `references/qualification-rubric.md` — exact scoring values for Need, Ability-to-pay, Reachability, and the tier cutoffs.
-- `references/sourcing-tools.md` — current sourcing/enrichment/sending tools, pricing, and cold-email deliverability setup.
-- `scripts/score_leads.py` — the scoring engine.
+- `references/qualification-rubric.md` — the scoring dimensions and the reasoning behind the defaults (which the profile overrides).
+- `references/target-niches-tristate.md` — ranked tri-state niches with example search queries.
+- `scripts/score_leads.py` — the scoring engine (also holds the per-offer need detectors).

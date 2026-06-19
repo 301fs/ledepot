@@ -1,0 +1,67 @@
+# ============================================================================
+# CAMPAIGN PROFILE TEMPLATE — copy this file, rename it, and fill it in.
+# A profile fully defines one campaign: who you target, how you source them,
+# what you're offering, and how you qualify. Pivoting = a new profile, no code.
+# Full schema + the available `offer` types: see README.md in this folder.
+# ============================================================================
+
+name: my-campaign-name
+description: One line on who this targets and what you're offering them.
+offer: website          # website | automation | database   (picks the need detectors)
+
+sourcing:
+  provider: outscraper        # outscraper | apify
+  niches:
+    - <niche e.g. restaurant>
+  locations:
+    - <Town STATE e.g. Stamford CT>
+  limit_per_query: 50
+  language: en
+  region: US
+  enrich_emails: true
+
+pitch: "One sentence you'd say to the owner about what you'll build them."
+
+qualification:
+  # Points per need-signal id. Available ids depend on `offer` (see README).
+  # Leave only the ones relevant to your offer; highest firing signal wins.
+  need_points:
+    no_website: 10
+    social_only: 9
+    no_https: 8
+    builder_subdomain: 7
+    site_exists_unverified: 5
+    modern_site: 1
+
+  ability:
+    review_buckets:
+      - [0, 0]
+      - [1, 3]
+      - [10, 6]
+      - [50, 8]
+      - [200, 10]
+    rating_full_at: 4.0
+    rating_mid_at: 3.0
+    rating_full_mult: 1.0
+    rating_mid_mult: 0.85
+    rating_low_mult: 0.7
+    price_bump_levels: ["$$", "$$$", "$$$$"]
+    price_bump: 1
+
+  reach:
+    email_phone_owner: 10
+    email_phone: 9
+    email_only: 7
+    phone_only: 6
+    none: 0
+
+  tiers:
+    disqualify_max_need: 2
+    A: { min_need: 7, min_ability: 6, requires_email: true }
+    B: { min_need: 7, min_ability: 6, requires_email: false }
+    C: { min_composite: 30 }
+
+  weights:
+    need: 1.0
+    ability: 1.0
+    reach: 1.0
