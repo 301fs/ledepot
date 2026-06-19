@@ -16,16 +16,18 @@ sourcing:
   niches:                     # each niche is combined with each location below
     - nail salon
     - hair salon
-  locations:                  # tri-state towns/cities to sweep
+  locations:                  # tri-state sweep: dense commuter belt + affluent towns
+    # Dense, mid-affluent commuter belt (volume + owners who haven't invested in tech)
     - Hoboken NJ
     - Jersey City NJ
-    - Newark NJ
-    - Paramus NJ
     - White Plains NY
     - New Rochelle NY
     - Yonkers NY
     - Stamford CT
     - Norwalk CT
+    # Affluent towns (higher ability to pay; watch for already-modern sites — DQ'd anyway)
+    - Ridgewood NJ
+    - Scarsdale NY
     - Greenwich CT
   limit_per_query: 50         # max places per "<niche> in <location>" query
   language: en
@@ -33,7 +35,7 @@ sourcing:
   enrich_emails: true         # ask the provider to also pull emails (small add-on cost)
 
 # --- OFFER framing (used in outreach + to explain the pitch) ----------------
-pitch: "A modern, mobile-friendly website with online booking so clients can book without calling."
+pitch: "Your own branded, mobile-friendly site (with booking built in) so you're not just an Instagram page or a Booksy link — clients find you, see your work, and book in one place."
 
 # --- QUALIFICATION (read by lead-qualifier) --------------------------------
 # Composite = (need * w_need) x (ability * w_ability) x (reach * w_reach).
@@ -44,9 +46,11 @@ qualification:
   # for this offer (see lead-qualifier). Highest-scoring firing signal wins.
   need_points:
     no_website: 10            # only a Google listing, no site
-    social_only: 9            # Facebook/Instagram but no real website
+    social_only: 9            # IG/FB only — the #1 salon signal: 78% of clients check
+                              # social first; ~30-40% of salons have no real website
     no_https: 8               # http:// only, no SSL
-    builder_subdomain: 7      # wixsite.com / business.site / weebly etc.
+    builder_subdomain: 7      # wixsite/weebly AND booking-platform pages (Booksy/Vagaro/
+                              # Fresha) — salon has a booking profile but not its own site
     site_exists_unverified: 5 # a site exists; load it before trusting tier
     modern_site: 1            # functional modern site -> low need
 

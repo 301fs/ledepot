@@ -43,9 +43,16 @@ The user sells **done-for-you tech work** (websites first, then automation, data
 
 4. **Review & hand off.** Read the qualifier's summary, spot-check the top and bottom of `scored.csv`, then route: **Tier A** → build a demo and email first; **Tier B** → phone-first using the Google number; **Tier C** → nurture later.
 
-5. **Track status & log outcomes** so nothing slips *and the loop can close*: `sourced → qualified → demo built → emailed → called → replied → booked`. Record per-lead outcomes in an outcomes ledger (`../campaign-evaluator/scripts/outcomes_template.csv`) — these are what the evaluator needs. If the user has Notion or a sheet connected, offer to stand up that tracker.
+5. **Prep the website briefs.** Use the **site-brief** skill to package each qualified lead's scraped content into a build-ready brief (this is why the scraper also emits `raw_leads.full.json`):
+   ```bash
+   python3 ../site-brief/scripts/build_brief.py --scored scored.csv \
+       --full raw_leads.full.json --tiers A,B --offer website --out briefs/
+   ```
+   Each brief has the contact, testimonials, badges, a site plan, and the gaps to ask the owner about — the bridge from qualified lead to demo site.
 
-6. **Evaluate & improve** (after outreach has run). Use the **campaign-evaluator** skill to grade whether the tiers actually converted and feed fixes back into the profile/playbook:
+6. **Track status & log outcomes** so nothing slips *and the loop can close*: `sourced → qualified → demo built → emailed → called → replied → booked`. Record per-lead outcomes in an outcomes ledger (`../campaign-evaluator/scripts/outcomes_template.csv`) — these are what the evaluator needs. If the user has Notion or a sheet connected, offer to stand up that tracker.
+
+7. **Evaluate & improve** (after outreach has run). Use the **campaign-evaluator** skill to grade whether the tiers actually converted and feed fixes back into the profile/playbook:
    ```bash
    python3 ../campaign-evaluator/scripts/score_campaign.py scored.csv \
        --outcomes outcomes.csv --campaign <campaign> --history scorecard-history.csv

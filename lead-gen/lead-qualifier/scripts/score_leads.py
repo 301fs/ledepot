@@ -140,7 +140,12 @@ def to_float(s):
 
 
 BUILDER_HOSTS = ["wixsite.com", "weebly.com", "godaddysites.com", "business.site",
-                 "blogspot.", "wordpress.com", "squarespace.com/site", "wix.com"]
+                 "blogspot.", "wordpress.com", "squarespace.com/site", "wix.com",
+                 # Booking-platform pages count as "no real website" — common in salons/
+                 # personal care. The owner has a booking profile but not their own site.
+                 "booksy.com", "vagaro.com", "fresha.com", "square.site",
+                 "glossgenius.com", "schedulicity.com", "styleseat.com", "setmore.com",
+                 "zoca.com", "phorest.com", ".zoca.com"]
 
 
 def has_site(website):

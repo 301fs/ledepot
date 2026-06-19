@@ -5,9 +5,10 @@ automation, database work) targeting non-technical local business owners in the
 NYC tri-state area (NY / NJ / CT).
 
 ```
-campaign-researcher → profile → lead-scraper → lead-qualifier → scored.csv → outreach → outcomes
-        ▲                                                                                    │
-        └──────────────────────  campaign-evaluator grades & feeds back  ◀──────────────────┘
+campaign-researcher → profile → lead-scraper → lead-qualifier → site-brief → website → outreach → outcomes
+        ▲                            │  (raw_leads.full.json: content for the site) ▲                  │
+        │                            └──────────────────────────────────────────────┘                  │
+        └────────────────────────────  campaign-evaluator grades & feeds back  ◀───────────────────────┘
 ```
 
 **Core idea:** *what* you target lives in a campaign **profile** (config); *how*
@@ -25,6 +26,8 @@ geography, or offer is a new profile — not a code change.
   - `scripts/scrape.py` (supports `--dry-run`), `references/sourcing-tools.md`.
 - **`lead-qualifier/`** — scores the CSV into ranked A/B/C tiers, driven by the profile.
   - `scripts/score_leads.py`, `references/qualification-rubric.md`, `references/target-niches-tristate.md`.
+- **`site-brief/`** — turns each qualified lead + its scraped content into a build-ready website brief (JSON + Markdown): contact, testimonials, badges, site plan, and gaps to fill. The bridge from lead to demo site.
+  - `scripts/build_brief.py`, `references/brief-schema.md`.
 - **`campaign-evaluator/`** — grades whether the tiers actually converted (calibration), scores the profiler 0–100, tracks the trend, and feeds fixes back into the researcher's playbooks (closes the loop).
   - `scripts/score_campaign.py`, `scripts/outcomes_template.csv`, `references/metrics.md`.
 - **`lead-sourcing-and-qualification-strategy.md`** — the written strategy behind it all.
