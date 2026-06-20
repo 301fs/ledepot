@@ -28,7 +28,7 @@ The user sells **done-for-you tech work** (websites first, then automation, data
 
 1. **Choose or create the profile.** If running an existing campaign, pick its file in `profiles/`. If starting a **new** campaign — or the user isn't sure of the niche/towns/scoring — use the **campaign-researcher** skill: it researches the market and writes an evidence-backed profile (plus a research playbook) for you, rather than you hand-guessing the fields. For a quick manual start, copy `_template.yaml`, fill in at least `name`, `offer`, `sourcing.niches`, `sourcing.locations`, and validate it (`python3 ../campaign-researcher/scripts/validate_profile.py profiles/<campaign>.yaml`). Confirm the choices with the user before spending anything.
 
-2. **Source** — invoke the **lead-scraper** skill. Always dry-run first to preview scope/cost:
+2. **Source** — invoke the **lead-scraper** skill. Its engine is pluggable: it prefers the installed **Nimble** (`market-finder`/`local-places`) or **Bright Data** plugins, and falls back to the built-in Outscraper/Apify script. For the fallback script, dry-run first to preview scope/cost:
    ```bash
    python3 ../lead-scraper/scripts/scrape.py --profile profiles/<campaign>.yaml --dry-run
    # then the real run, once credentials are set:
@@ -72,6 +72,7 @@ A pivot should almost never require touching scraper or qualifier code — if it
 - **Confirm scope and cost before scraping** — run the dry-run and check the place-count estimate against budget.
 - **One profile drives both stages.** Never scrape with one profile and score with another — the qualifier's need detectors assume the offer the scraper targeted.
 - **Spot-check before outreach.** Automated tiers are directional; eyeball the top A's (and a few disqualified) before building demos or dialing.
+- **Verify with the QA plugins.** When installed, use **`data:validate-data`** / **`data:explore-data`** to sanity-check the scored output (null rates, suspicious values, whether the tier split is plausible) and **`engineering:code-review`** / **`engineering:testing-strategy`** when changing any of the pipeline scripts — these are stronger than an ad-hoc eyeball and catch edge cases (empty scrapes, mis-mapped columns, scoring regressions).
 
 ## Related
 

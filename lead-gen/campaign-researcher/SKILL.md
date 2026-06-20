@@ -27,11 +27,11 @@ Get (or infer, then confirm) the **offer** and the **rough market**. If the user
 Before searching, write down — briefly — what's **uncertain** about this campaign and what evidence would resolve it. Use `references/profile-research-map.md` as scaffolding (it maps each profile field to a research question and where to look), but tailor it: a website campaign for salons leans on "do they even have a site / are they Instagram-only?"; an automation campaign for clinics leans on "what do they do manually?". The questions you choose *are* the campaign-specific research method you're learning.
 
 ### 3. Research
-Work the questions, cheapest-first:
+Work the questions, cheapest-first, and **use the strongest research engine available** rather than raw web search when you can:
 
-- **Hands-on Maps scan (do this — it's the highest-value step).** Look at 15–25 real listings for the niche in a couple of target towns. Note: site present? quality? online booking? socials? review counts? findable email? This is what grounds the need signals and ability benchmarks in reality rather than assumption.
-- **Web search** for niche tech-adoption, typical budgets/spend, town income/density, competitor agencies, seasonality. Use `WebSearch` / `web_fetch`.
-- **Deep digs** → hand off to the **deep-research** skill when a question needs multi-source verification, and fold its report back in.
+- **Hands-on local-business scan (do this — it's the highest-value step).** Look at 15–25 real listings for the niche in a couple of target towns: site present? quality? online booking? socials? review counts? findable email? This grounds the need signals and ability benchmarks in reality. The fastest way to gather this is the installed plugins: **`nimble:local-places`** / **`nimble:market-finder`** return real local businesses with reviews/social/scoring, and **`brightdata-plugin:scrape`/`search`** pull live page data. Fall back to a manual Google Maps look only if neither is available.
+- **Market/competition research** → prefer **`brightdata-plugin:live-research`** or **`brightdata-plugin:competitive-intel`** (multi-source, cited) and **`nimble:company-deep-dive`/`competitor-intel`** for niche tech-adoption, typical budgets/spend, town income/density, competitor agencies, and seasonality. Use plain `WebSearch` / `web_fetch` only when no research plugin is installed.
+- **Deep multi-source digs** → the **deep-research** or **`brightdata-plugin:live-research`** skill, folded back into the playbook.
 
 Capture findings *with sources* as you go — you'll cite them in the playbook.
 
@@ -73,4 +73,4 @@ Write `references/research-playbook-template.md`'s structure to `../lead-pipelin
 - `references/profile-research-map.md` — what to research for each profile field, and where to look (the reusable scaffolding).
 - `references/research-playbook-template.md` — the structure of the per-campaign learned playbook.
 - `scripts/validate_profile.py` — checks a produced profile is well-formed and sane.
-- Related: `lead-pipeline` (run the campaign), `lead-scraper`, `lead-qualifier`, and the `deep-research` skill for heavy digs.
+- Related: `lead-pipeline` (run the campaign), `lead-scraper`, `lead-qualifier`. Research engines to prefer when installed: `brightdata-plugin:live-research` / `competitive-intel`, `nimble:local-places` / `market-finder` / `company-deep-dive`, and the `deep-research` skill for heavy digs.

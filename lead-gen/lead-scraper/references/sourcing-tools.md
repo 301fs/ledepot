@@ -4,10 +4,17 @@ Budget target: **under $100/mo total.** Pricing below was accurate as of mid-202
 
 ## Sourcing — get the raw business list
 
-**Use a pay-per-use Google Maps scraper. Do NOT use the official Google Places API for prospecting.**
+**Preferred engines (installed plugins):**
 
-- **Outscraper** or an **Apify Google Maps scraper** — roughly **$1.50–$3 per ~500 businesses**, with an email/social-extraction add-on for a bit more. Bypasses the per-query result cap and returns the website field and (often) an email. At a few hundred leads/week this stays well under budget.
-- **Why not the official Places API:** ~$32–40 per 1,000 records, caps results per query (~120), and returns **no email or social data** — Google tiers that data out. Far more expensive and missing the field you most need.
+- **Nimble** — the best fit for this stage. `nimble:market-finder` does "find all <niche> in <geography>" → a prospect list; `nimble:local-places` discovers + enriches + scores local businesses with reviews, social, and a map; `nimble:nimble-web-expert` handles ad-hoc fetch/extract. Needs the Nimble account/CLI authenticated. This is the recommended primary engine.
+- **Bright Data** (`brightdata-plugin`) — strong general scraper with bot-detection/CAPTCHA handling: `search` to discover, `scrape` for clean page data, `data-feeds` for structured profiles from 40+ platforms (Instagram, LinkedIn, etc.). Best for enriching socials/reviews at scale. Needs a Bright Data API key.
+
+**Fallback engine (no plugins):** a pay-per-use Google Maps scraper via `scripts/scrape.py`. Do NOT use the official Google Places API for prospecting.
+
+- **Outscraper** or an **Apify Google Maps scraper** — roughly **$1.50–$3 per ~500 businesses**, with an email/social-extraction add-on for a bit more. Bypasses the per-query result cap and returns the website field and (often) an email.
+- **Why not the official Places API:** ~$32–40 per 1,000 records, caps results per query (~120), and returns **no email or social data**.
+
+Whatever engine runs, normalize its output into the lead-scraper schema (`name`, `website`, `phone`, `reviews`, `rating`, `email`, `address`, etc.) so the qualifier and site-brief stay engine-agnostic.
 
 Typical export columns to expect (names vary by tool): `name`, `site`/`website`, `phone`, `full_address`, `city`, `state`, `category`/`type`, `reviews`/`review_count`, `rating`, `price_level`, `email`, `facebook`, `instagram`. The scoring script sniffs for these.
 

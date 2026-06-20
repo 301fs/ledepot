@@ -15,6 +15,15 @@ campaign-researcher → profile → lead-scraper → lead-qualifier → site-bri
 you scrape and score lives in the **skills** (machinery). Pivoting to a new niche,
 geography, or offer is a new profile — not a code change.
 
+**Engines (plug in the best installed tool):** sourcing prefers the **Nimble**
+(`market-finder`/`local-places`) or **Bright Data** plugins, falling back to the
+built-in Outscraper/Apify script; research prefers **Bright Data `live-research`**
+/ **Nimble** research skills; verification uses the **data** (`validate-data`) and
+**engineering** (`code-review`, `testing-strategy`) plugins. These plugins are
+maintained, scale better, and handle bot-detection/CAPTCHAs — so the lead-gen
+skills delegate to them and keep only the campaign-specific logic (profiles,
+scoring, briefs, evaluation).
+
 ## Structure
 
 - **`campaign-researcher/`** — researches a market and writes an evidence-backed profile + a reusable research playbook (the front of the funnel; start here for a new campaign).

@@ -1,46 +1,46 @@
 ---
 name: lead-scraper
-description: Source local businesses from Google Maps into a clean, normalized CSV for lead generation, driven by a campaign profile. Use this skill whenever the user wants to scrape, pull, or build a raw list of businesses to prospect — e.g. "scrape nail salons in NJ," "pull restaurants in Westchester from Google Maps," "get me a list of HVAC companies in Connecticut," or "source leads for the salon campaign." It runs the Outscraper or Apify API based on the profile's sourcing settings and outputs a CSV that lead-qualifier scores. For the full source→qualify→outreach flow see lead-pipeline; for scoring the output see lead-qualifier.
+description: Source local businesses into a clean, normalized CSV (+ full.json) for lead generation, driven by a campaign profile. Use this skill whenever the user wants to scrape, pull, or build a raw list of businesses to prospect — e.g. "scrape nail salons in NJ," "pull restaurants in Westchester," "get me a list of HVAC companies in Connecticut," or "source leads for the salon campaign." It uses the best available web-data engine — Nimble or Bright Data when installed, otherwise the built-in Outscraper/Apify script — and outputs files that lead-qualifier scores and site-brief builds from. For the full source→qualify→outreach flow see lead-pipeline.
 ---
 
 # Lead Scraper
 
-This skill is the **first stage** of the lead funnel: it sources local businesses from Google Maps and writes a normalized CSV that `lead-qualifier` can score directly. It does **not** decide who's a good lead — it just collects the raw data the campaign profile asks for. Keeping sourcing separate means you can re-scrape without re-qualifying, swap the data source later, and reason about each stage on its own.
+This skill is the **first stage** of the lead funnel: it sources local businesses and writes a normalized CSV (plus a `full.json` of rich content) that `lead-qualifier` scores and `site-brief` builds websites from. It does **not** decide who's a good lead — it collects the raw data the campaign profile asks for. Keeping sourcing separate means you can re-scrape without re-qualifying and swap the engine without touching the rest of the funnel.
+
+## Engine: prefer the installed web-data plugins
+
+The *engine* that actually fetches businesses is pluggable, and the funnel is better when it rides on a robust, maintained scraper rather than a raw API script. Use the best one available, in this order:
+
+1. **Nimble (preferred for local-business discovery).** If the `nimble` plugin is installed and authenticated, use its purpose-built skills — they do exactly this stage's job and handle scale, geo, reviews, and social:
+   - **`nimble:market-finder`** — "find all <niche> in <geography>" → a prospect list (best fit for a campaign sweep across many towns).
+   - **`nimble:local-places`** — discover + enrich + score local businesses in an area, returning reviews, social presence, and a map (great for richer per-place content).
+   - **`nimble:nimble-web-expert`** — fetch/scrape any specific URLs or run ad-hoc extraction for enrichment.
+2. **Bright Data (strong general scraper / platform data).** If `brightdata-plugin` is installed: `brightdata-plugin:search` to discover, `brightdata-plugin:scrape` for clean page data, and `brightdata-plugin:data-feeds` for structured profiles from 40+ platforms (handles bot detection/CAPTCHAs). Good for enriching a lead's socials or pulling reviews at scale.
+3. **Built-in fallback script.** If neither plugin is available, use `scripts/scrape.py` (Outscraper/Apify API). It still works and is the no-plugin path.
+
+Whichever engine runs, **normalize its output into this skill's schema** (below) so the downstream skills never care which engine was used. That normalization is the one job this skill always owns.
 
 ## What it reads and produces
 
-- **Input:** a campaign profile's `sourcing` section (`../lead-pipeline/profiles/*.yaml`) — provider, niches, locations, per-query limit, language/region, and whether to enrich emails.
-- **Output:** one CSV with a fixed normalized schema (the contract with the qualifier): `name, category, website, phone, email, reviews, rating, price, booking, facebook, instagram, address, city, state, query`.
-
-The normalizer maps both Outscraper and Apify field names into this schema, so the qualifier never has to care which provider was used.
-
-## Why Google Maps + a pay-per-use scraper
-
-Google Maps is the richest public source of local businesses and exposes exactly the fields qualification needs (website-or-not, URL, category, reviews, rating, phone, price). Do **not** use the official Google Places API for this — it's far pricier per record, caps results, and returns no email. Use a pay-per-use scraper (Outscraper or Apify) instead. Pricing, the recommended budget stack, and cold-email deliverability setup are in `references/sourcing-tools.md`.
+- **Input:** a campaign profile's `sourcing` section (`../lead-pipeline/profiles/*.yaml`) — niches, locations, per-query limit, and whether to enrich emails. (`provider` may now also be `nimble` or `brightdata`.)
+- **Output (the contract with the rest of the funnel):**
+  - `raw_leads.csv` — flat fields the qualifier scores on plus website-build fields (hours, geo, description, attributes): `name, category, website, phone, email, reviews, rating, price, booking, facebook, instagram, address, city, state, hours, latitude, longitude, plus_code, description, attributes, photo_count, place_id, query`.
+  - `raw_leads.full.json` — the full per-business records (nested reviews, photos, services) that `site-brief` turns into website content.
 
 ## Workflow
 
-1. **Pick the profile** (the campaign). If the user is starting fresh, help them fill one from `../lead-pipeline/profiles/_template.yaml` — especially `niches` and `locations`.
+1. **Pick the profile** (the campaign). Fresh start → fill one from `../lead-pipeline/profiles/_template.yaml`, especially `niches` and `locations`.
 
-2. **Always dry-run first** to preview the queries and the scope before spending anything:
-   ```bash
-   python3 scripts/scrape.py --profile ../lead-pipeline/profiles/<campaign>.yaml --dry-run
-   ```
-   This prints every `"<niche> in <location>"` query and the max places it would fetch — no API call, no spend. Confirm the niches/locations look right before the real run.
+2. **Source with the best available engine.**
+   - **Nimble/Bright Data path (preferred):** invoke the relevant plugin skill above for each `<niche> in <location>` the profile defines (e.g. hand `nimble:market-finder` the niche + town list). Then **normalize** the returned businesses into `raw_leads.csv` + `raw_leads.full.json` using this skill's schema. Confirm scope with the user before a large sweep.
+   - **Fallback script path:** dry-run first, then run, as below.
+     ```bash
+     python3 scripts/scrape.py --profile ../lead-pipeline/profiles/<campaign>.yaml --dry-run   # preview, no spend
+     export OUTSCRAPER_API_KEY=...        # or APIFY_API_TOKEN=...
+     python3 scripts/scrape.py --profile ../lead-pipeline/profiles/<campaign>.yaml -o raw_leads.csv
+     ```
 
-3. **Set the provider credential** (one of):
-   ```bash
-   export OUTSCRAPER_API_KEY=...     # provider: outscraper  (needs: pip install outscraper)
-   export APIFY_API_TOKEN=...        # provider: apify       (needs: pip install apify-client)
-   ```
-
-4. **Run the scrape:**
-   ```bash
-   python3 scripts/scrape.py --profile ../lead-pipeline/profiles/<campaign>.yaml -o raw_leads.csv
-   ```
-   It de-dupes on name+address and reports how many businesses it got and what share have an email.
-
-5. **Hand off to the qualifier** with the same profile:
+3. **Hand off to the qualifier** with the same profile:
    ```bash
    python3 ../lead-qualifier/scripts/score_leads.py raw_leads.csv \
        --profile ../lead-pipeline/profiles/<campaign>.yaml -o scored.csv
@@ -61,5 +61,5 @@ Google Maps is the richest public source of local businesses and exposes exactly
 
 ## Reference files
 
-- `references/sourcing-tools.md` — providers, current pricing, the budget stack, enrichment, and cold-email deliverability setup.
-- `scripts/scrape.py` — the scraper (Outscraper + Apify, with `--dry-run`).
+- `references/sourcing-tools.md` — engines (Nimble, Bright Data, Outscraper/Apify), pricing, the budget stack, enrichment, and cold-email deliverability setup.
+- `scripts/scrape.py` — the fallback scraper (Outscraper + Apify, with `--dry-run`) used when the Nimble/Bright Data plugins aren't available.
